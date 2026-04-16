@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>NULL_TRACE | OS Terminal</title>
+        <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet" />
+
+        <style>
+            body {
+                background-color: #000000;
+                color: #00ff41;
+                font-family: "VT323", monospace;
+                margin: 0; padding: 0;
+                overflow: hidden;
+                width: 100vw; height: 100vh;
+                user-select: none;
+            }
+
+            body::after {
+                content: " "; display: block; position: absolute;
+                top: 0; left: 0; bottom: 0; right: 0;
+                background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                            linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+                z-index: 999; background-size: 100% 3px, 3px 100%; pointer-events: none;
+            }
+            .crt-flicker { animation: flicker 0.15s infinite; }
+            @keyframes flicker {
+                0% { opacity: 0.95; }
+                50% { opacity: 1; }
+                100% { opacity: 0.98; }
+            }
+
+            #matrix-canvas {
+                position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+                z-index: -1; opacity: 0.2;
+            }
+
+            #power-overlay {
+                position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+                background: #000; z-index: 9999; display: flex; justify-content: center; align-items: center;
+            }
+            .power-on-anim {
+                animation: turnOn 1.5s ease-out forwards;
+            }
+            @keyframes turnOn {
+                0% { transform: scale(1, 0.001); background: #fff; opacity: 1; }
+                30% { transform: scale(1, 0.001); background: #fff; opacity: 1; }
+                60% { transform: scale(1, 1); background: transparent; filter: brightness(3); opacity: 1; }
+                100% { transform: scale(1, 1); background: transparent; pointer-events: none; opacity: 0; }
+            }
+
+            .encounter-anim {
+                animation: encounterFlash 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            }
+            @keyframes encounterFlash {
+                0% { filter: invert(1) hue-rotate(180deg); transform: scale(1.05); }
+                20% { filter: invert(0) hue-rotate(0deg); transform: translate(-10px, 10px); }
+                40% { filter: invert(1) hue-rotate(90deg); transform: translate(10px, -10px); }
+                60% { filter: invert(0); transform: scale(0.95); }
+                100% { filter: none; transform: scale(1) translate(0); }
+            }
+
+            #terminal-window {
+                width: 100vw; height: 100vh;
+                background: transparent;
+                display: grid;
+                grid-template-columns: 75vw 25vw;
+                grid-template-rows: 80vh 20vh;
+                overflow: hidden;
+            }
+
+            #map-area {
+                grid-column: 1; grid-row: 1;
+                border-right: 2px solid #00ff41; border-bottom: 2px solid #00ff41;
+                padding: 2vw; font-size: 3vh; line-height: 2.5vh; letter-spacing: 3px;
+                white-space: pre; overflow: hidden;
+                background: radial-gradient(circle, rgba(0, 30, 0, 0.15) 0%, rgba(0, 0, 0, 0.6) 100%);
+            }
+
+            #sidebar-area {
+                grid-column: 2; grid-row: 1;
+                border-bottom: 2px solid #00ff41; padding: 2vw;
+                background: rgba(0, 15, 0, 0.3); box-shadow: inset 1vw 0 2vw rgba(0, 0, 0, 0.8);
+            }
+
+            #bottom-area {
+                grid-column: 1 / span 2; grid-row: 2; padding: 1vh 3vw;
+                display: flex; justify-content: space-between; align-items: center;
+                background: rgba(0, 10, 0, 0.5);
+            }
+
+            h3, h4 { margin: 0 0 1vh 0; font-weight: normal; font-size: 3vh; letter-spacing: 2px; }
+            .neon-green { color: #00ff41; text-shadow: 0 0 1vh rgba(0, 255, 65, 0.6); }
+            .neon-cyan { color: #00ffff; text-shadow: 0 0 1vh rgba(0, 255, 255, 0.6); }
+            .neon-red { color: #ff3333; text-shadow: 0 0 1vh rgba(255, 51, 51, 0.6); }
+            .dim-text { color: #4a754a; }
+
+            #log-view { font-size: 2.2vh; color: #88b088; margin-bottom: 3vh; min-height: 30vh; line-height: 1.5; }
+
+            .hp-container { display: flex; align-items: center; gap: 1vw; }
+            .hp-bar-bg {
+                width: 20vw; height: 2.5vh; background: #003333;
+                border: 1px solid #00ffff; box-shadow: 0 0 1vh rgba(0, 255, 255, 0.3);
+            }
+            .hp-bar-fill { height: 100%; background: #00ffff; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+
+            .modules-container { display: flex; gap: 1vw; }
+            .module-slot {
+                width: 4vw; height: 4vw; border: 1px solid #00ff41; display: flex;
+                justify-content: center; align-items: center; font-size: 2.5vw;
+                background: rgba(0, 255, 65, 0.05); box-shadow: inset 0 0 1vw rgba(0, 255, 65, 0.2);
+            }
+
+            .overlay {
+                position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(2, 3, 5, 0.95); display: flex; flex-direction: column;
+                justify-content: center; align-items: center; z-index: 10;
+                backdrop-filter: blur(5px);
+            }
+            .dialog-box {
+                border: 2px solid #00ffff; background: rgba(0, 15, 20, 0.95);
+                padding: 4vh; width: 60vw; text-align: left; box-shadow: 0 0 5vh rgba(0, 255, 255, 0.15);
+            }
+            pre { margin: 0; font-family: inherit; }
+            .blink { animation: blinker 1s linear infinite; }
+            @keyframes blinker { 50% { opacity: 0; } }
+
+            #boss-rpg-container {
+                display: none; height: 100vh; width: 100vw; justify-content: space-between; flex-direction: column;
+                background: radial-gradient(circle, rgba(30, 0, 0, 0.1) 0%, rgba(10, 0, 0, 0.95) 100%);
+            }
+            #boss-ascii {
+                flex: 1; display: flex; justify-content: center; align-items: center;
+                animation: float 4s ease-in-out infinite;
+            }
+            @keyframes float {
+                0% { transform: translateY(0px); }
+                50% { transform: translateY(-2vh); }
+                100% { transform: translateY(0px); }
+            }
+            #boss-rpg-hud {
+                height: 30vh; width: 100vw; background: #010103; border-top: 2px solid #ff3333;
+                display: flex; box-shadow: 0 -2vh 5vh rgba(255, 51, 51, 0.1);
+            }
+            .battle-panel-left {
+                flex: 1.5; border-right: 2px solid #ff3333; padding: 3vh; display: flex; flex-direction: column;
+            }
+            .battle-panel-right {
+                flex: 1; padding: 3vh; display: flex; flex-direction: column; justify-content: center;
+            }
+            .menu-item { margin-bottom: 1.5vh; }
+        </style>
+    </head>
+    <body class="crt-flicker">
+        
+        <div id="power-overlay"></div>
+        <canvas id="matrix-canvas"></canvas>
+
+        <div id="terminal-window">
+            
+            <div id="menu-overlay" class="overlay" style="background: rgba(0,0,0,0.5); backdrop-filter: none;">
+                <h1 class="neon-green" style="font-size: 8vw; margin-bottom: 1vh; letter-spacing: 1vw;">N U L L _ T R A C E</h1>
+                <br /><br /><br />
+                <div id="main-menu-options" style="font-size: 3vw; line-height: 2; text-align: left;"></div>
+            </div>
+
+            <div id="boot-overlay" class="overlay" style="display: none; align-items: flex-start; padding: 5vw; background: #000; backdrop-filter: none;">
+                <pre id="boot-text" style="font-size: 3vh; line-height: 1.5;"></pre>
+            </div>
+
+            <div id="episode-overlay" class="overlay" style="display: none">
+                <div style="border: 2px solid #00ff41; padding: 5vh; width: 50vw; background: rgba(0, 10, 0, 0.9);">
+                    <h2 class="neon-green" style="margin-top: 0; font-size: 4vh; border-bottom: 1px dashed #00ff41; padding-bottom: 2vh;">[ SYSTEM SELECT ]</h2>
+                    <div id="episode-list" style="font-size: 3vh; line-height: 2; margin-top: 3vh;"></div>
+                </div>
+            </div>
+
+            <div id="dialog-overlay" class="overlay" style="display: none">
+                <div class="dialog-box">
+                    <h3 class="neon-cyan" style="border-bottom: 1px solid #00ffff; padding-bottom: 2vh; font-size: 4vh;">[ INCOMING TRANSMISSION ]</h3>
+                    <p id="dialog-text" style="font-size: 3.5vh; color: #e0e0e0; white-space: pre-wrap; line-height: 1.5; margin-top: 3vh;"></p>
+                    <div style="text-align: right; margin-top: 5vh">
+                        <span class="dim-text blink" style="font-size: 2.5vh; border: 1px solid #4a754a; padding: 1vh 2vw;">[ENTER] CONTINUE</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="battle-overlay" class="overlay" style="display: none">
+                
+                <div id="boss-rpg-container">
+                    <div id="boss-ascii">
+                        <pre class="neon-red" id="battle-sprite" style="font-size: 2.5vh; font-weight: bold; text-align: center; line-height: 1.2;"></pre>
+                    </div>
+                    <div id="boss-rpg-hud">
+                        <div class="battle-panel-left">
+                            <h3 class="neon-cyan" style="border-bottom: 1px dashed #ff3333; padding-bottom: 1vh;">PLAYER_INTEGRITY</h3>
+                            <p id="boss-hud-player-hp" style="font-size: 4vh; color: #fff; margin-top: 1vh;"></p>
+                            <h3 class="neon-red" style="margin-top: auto; border-bottom: 1px dashed #ff3333; padding-bottom: 1vh;">HOST_HP</h3>
+                            <div class="hp-container" style="margin-top: 1vh;">
+                                <span id="boss-hud-boss-hp-text" class="neon-red" style="font-size: 4vh"></span>
+                                <div class="hp-bar-bg" style="border-color: #ff3333; background: #330000; box-shadow: none; height: 3vh;">
+                                    <div id="boss-hud-boss-hp-bar" class="hp-bar-fill" style="background: #ff3333; width: 100%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="battle-panel-right">
+                            <span style="font-size: 3.5vh; color: #ff3333; border-bottom: 1px solid #ff3333; padding-bottom: 1vh;">TACTICAL_OVERRIDE</span>
+                            <div id="boss-rpg-commands" style="font-size: 3.5vh; line-height: 1.5; margin-top: 2vh;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="puzzle-battle-container">
+                    <pre class="neon-red" style="font-size: 2vh; margin-bottom: 3vh;">
+          .---.
+         /     \
+        | () () |
+         \  ^  /
+        __|||||__
+       / _     _ \
+      | | |   | | |
+      |_| |___| |_|
+         ERROR
+                    </pre>
+                    <div style="border: 2px solid #ff3333; background: rgba(20, 0, 0, 0.9); padding: 4vh; width: 50vw; box-shadow: 0 0 3vh rgba(255, 51, 51, 0.2);">
+                        <h3 class="neon-red" id="battle-title" style="font-size: 4vh;">TARGET DETECTED</h3>
+                        <p id="battle-desc" style="color: #e0e0e0; font-size: 3vh; white-space: pre-wrap; margin-top: 2vh; line-height: 1.5;"></p>
+                        <div style="margin-top: 3vh; border-top: 1px dashed #ff3333; padding-top: 2vh;">
+                            <span style="font-size: 3.5vh; color: #00ffff">INPUT > </span>
+                            <span id="battle-input" style="font-size: 3.5vh; color: #00ffff"></span><span class="blink neon-cyan" style="font-size: 3.5vh">_</span>
+                        </div>
+                        <p class="dim-text" style="margin-top: 3vh; font-size: 2.5vh">[ENTER] EXECUTE PATCH</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="map-area"></div>
+
+            <div id="sidebar-area">
+                <h3 class="neon-green">>> SYSTEM_EVENTS</h3>
+                <div id="log-view"></div>
+                <h4 class="dim-text">CURRENT_NODE:</h4>
+                <div id="loc-view" class="neon-cyan" style="font-size: 3vh; margin-bottom: 3vh"></div>
+                <h4 class="dim-text">NET_STATUS:</h4>
+                <div class="neon-green" style="font-size: 3vh; background: rgba(0,255,65,0.1); padding: 1vh;">ONLINE [SECURE]</div>
+            </div>
+
+            <div id="bottom-area">
+                <div>
+                    <div class="dim-text" style="font-size: 2.5vh; margin-bottom: 1vh">SYS_INTEGRITY:</div>
+                    <div class="hp-container">
+                        <span id="hp-text" class="neon-cyan" style="font-size: 4vh">100</span>
+                        <div class="hp-bar-bg"><div id="hp-bar" class="hp-bar-fill" style="width: 100%"></div></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="dim-text" style="font-size: 2.5vh; margin-bottom: 1vh; text-align: right;">ACTIVE_MODULES:</div>
+                    <div class="modules-container">
+                        <div class="module-slot neon-green">φ</div>
+                        <div class="module-slot" style="color: #ffb400; border-color: #ffb400">Σ</div>
+                        <div class="module-slot dim-text" style="border-color: #4a754a">-</div>
+                        <div class="module-slot dim-text" style="border-color: #4a754a">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            let prevState = "";
+
+            const canvas = document.getElementById("matrix-canvas");
+            const ctx = canvas.getContext("2d");
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            const letters = "01".split("");
+            const fontSize = 18; const columns = canvas.width / fontSize;
+            const drops = Array(Math.floor(columns)).fill(1);
+
+            function drawMatrix() {
+                ctx.fillStyle = "rgba(2, 2, 5, 0.1)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "#00FF41"; ctx.font = fontSize + "px monospace";
+                for (let i = 0; i < drops.length; i++) {
+                    const text = letters[Math.floor(Math.random() * letters.length)];
+                    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                    if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                    drops[i]++;
+                }
+            }
+            setInterval(drawMatrix, 50);
+
+            function playBootSequence() {
+                document.getElementById("boot-overlay").style.display = "flex";
+                const lines = [
+                    "BIOS DATE 09/22/84 15:23:01 VER 1.02", "CPU: NEC V20, SPEED: 8 MHz", "640K RAM SYSTEM... OK", "",
+                    "LOADING BOOTSTRAP LOADER...", "DETECTING DRIVE A: [ NULL_TRACE DISK ]", "READING SECTOR 0...",
+                    "INITIALIZING KERNEL...", "SYSTEM READY.", "", "CONNECTING TO NEURAL LINK...",
+                ];
+                let idx = 0;
+                const bootEl = document.getElementById("boot-text");
+                bootEl.innerText = "";
+                const interval = setInterval(() => {
+                    if (idx < lines.length) {
+                        bootEl.innerText += lines[idx] + "\n";
+                        idx++;
+                    } else {
+                        clearInterval(interval);
+                        setTimeout(() => sendAction("BootDone"), 800);
+                    }
+                }, 200);
+            }
+
+            function sendAction(key, forceState = null) {
+                fetch("/action", {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ key: key }),
+                }).then((r) => r.json()).then((data) => updateUI(data, forceState));
+            }
+
+            function updateUI(data, forceState) {
+                let state = forceState || data.state;
+
+                const matrixCanvas = document.getElementById("matrix-canvas");
+                if (state === "GAMEPLAY" || state === "BATTLE" || state === "DIALOG") {
+                    matrixCanvas.style.display = "none";
+                } else {
+                    matrixCanvas.style.display = "block";
+                }
+
+                if (state === "BATTLE" && prevState !== "BATTLE") {
+                    document.body.classList.remove("encounter-anim");
+                    void document.body.offsetWidth;
+                    document.body.classList.add("encounter-anim");
+                }
+                prevState = state;
+
+                document.querySelectorAll(".overlay").forEach((el) => (el.style.display = "none"));
+                document.getElementById("boss-rpg-container").style.display = "none";
+                document.getElementById("puzzle-battle-container").style.display = "none";
+
+                if (state === "DIALOG") {
+                    document.getElementById("dialog-overlay").style.display = "flex";
+                    document.getElementById("dialog-text").innerText = data.dialog;
+                } else if (state === "BOOT") {
+                    playBootSequence();
+                } else if (state === "MAIN_MENU") {
+                    document.getElementById("menu-overlay").style.display = "flex";
+                    
+                    const menuItems = ["PLAY", "LOAD GAME", "SETTINGS"];
+                    let menuHTML = menuItems.map((item, i) => {
+                        let color = (i === data.menu_idx) ? "#00ffff" : "#508050";
+                        let prefix = (i === data.menu_idx) ? "> " : "  ";
+                        return `<div class="menu-item" style="color: ${color};">${prefix}${item}</div>`;
+                    }).join("");
+                    document.getElementById("main-menu-options").innerHTML = menuHTML;
+
+                } else if (state === "EPISODE_SELECT") {
+                    document.getElementById("episode-overlay").style.display = "flex";
+                    const epList = [0].map((i) => {
+                        let locked = !data.unlocked.includes(i);
+                        let prefix = data.ep_idx === i ? "> " : "  ";
+                        let col = data.ep_idx === i ? "#00FFFF" : locked ? "#FF3333" : "#A0C0A0";
+                        let bg = data.ep_idx === i ? "rgba(0,255,255,0.1)" : "transparent";
+                        return `<div style="color:${col}; background:${bg}; padding: 1vh;">${prefix} DEMO GATEWAY</div>`;
+                    }).join("");
+                    document.getElementById("episode-list").innerHTML = epList;
+
+                } else if (state === "GAMEPLAY") {
+                    document.getElementById("map-area").innerHTML = data.map_html;
+                    if (data.loc) document.getElementById("loc-view").innerText = data.loc;
+                    if (data.hp !== undefined) {
+                        document.getElementById("hp-text").innerText = data.hp;
+                        let hpPercent = (data.hp / data.max_hp) * 100;
+                        let bar = document.getElementById("hp-bar");
+                        if (bar) {
+                            bar.style.width = hpPercent + "%";
+                            bar.style.background = hpPercent > 30 ? "#00FFFF" : "#FF3333";
+                        }
+                    }
+                    if (data.log) document.getElementById("log-view").innerHTML = data.log.map((l) => `> ${l}`).join("<br>");
+
+                } else if (state === "BATTLE") {
+                    document.getElementById("battle-overlay").style.display = "flex";
+
+                    if (data.boss_rpg) {
+                        document.getElementById("boss-rpg-container").style.display = "flex";
+                        const rpg = data.boss_rpg;
+                        document.getElementById("battle-sprite").innerText = rpg.ascii_battle;
+                        document.getElementById("boss-hud-player-hp").innerText = `${rpg.player_hp} / 100`;
+                        document.getElementById("boss-hud-boss-hp-text").innerText = `${rpg.boss_hp} / ${rpg.boss_max_hp}`;
+                        let hpPercent = (rpg.boss_hp / rpg.boss_max_hp) * 100;
+                        document.getElementById("boss-hud-boss-hp-bar").style.width = `${hpPercent}%`;
+                        document.getElementById("boss-rpg-commands").innerHTML = rpg.commands.map((c) => `<div class="menu-item">${c}</div>`).join("");
+                    }
+                    else if (data.puzzle) {
+                        document.getElementById("puzzle-battle-container").style.display = "block";
+                        document.getElementById("battle-title").innerText = data.puzzle.puzzle_title;
+                        document.getElementById("battle-desc").innerText = data.puzzle.puzzle_desc;
+                        document.getElementById("battle-input").innerText = data.input;
+                    }
+                }
+            }
+
+            window.addEventListener("keydown", (e) => {
+                if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(e.key)) {
+                    e.preventDefault();
+                }
+                if (e.key.length === 1 || ["Enter", "Backspace", "Escape"].includes(e.key) || e.key.startsWith("Arrow")) {
+                    sendAction(e.key);
+                }
+            });
+
+            window.onload = () => {
+                const po = document.getElementById("power-overlay");
+                po.classList.add("power-on-anim");
+                setTimeout(() => {
+                    po.style.display = "none";
+                    sendAction("Init");
+                }, 1500);
+            };
+        </script>
+    </body>
+</html>
