@@ -1,4 +1,9 @@
-# NULL_TRACE
+             _ _    _                      _ 
+ _ __  _   _| | |  | |_ _ __ __ _  ___ ___| |
+| '_ \| | | | | |  | __| '__/ _` |/ __/ _ \ |
+| | | | |_| | | |  | |_| | | (_| | (_|  __/_|
+|_| |_|\__,_|_|_|___\__|_|  \__,_|\___\___(_)
+               |_____|                       
 
 **NULL_TRACE** adalah sebuah game *Roguelike Hacking Simulator* berbasis terminal (CLI) yang menggabungkan elemen eksplorasi taktis dengan edukasi pemrograman Python dan konsep *Cybersecurity*. Dibangun menggunakan pustaka `tcod` (Python), game ini menghadirkan sensasi visual retro berkat efek CRT/Scanline ASCII yang khas.
 
