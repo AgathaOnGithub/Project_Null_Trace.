@@ -44,8 +44,3 @@ Di setiap level (*Node*), pemain memiliki siklus misi (Gameplay Loop) yang harus
 *   **ESC** - Membuka Menu / Keluar.
 
 ***
-**Metode 2: Drag and Drop Langsung di GitHub**
-1. Buka halaman *repository* Anda di *browser* dan klik tombol bergambar pensil (Edit) pada file `README.md`.
-2. Tarik dan lepas (*drag and drop*) file gambar dari komputer Anda langsung ke dalam area teks editor di halaman web GitHub.
-3. GitHub akan secara otomatis menghasilkan kode *link* gambar. Biarkan kode tersebut apa adanya.
-```
