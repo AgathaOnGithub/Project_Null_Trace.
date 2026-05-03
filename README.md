@@ -1,76 +1,25 @@
-# NULL_TRACE
+NULL_TRACE
+NULL_TRACE adalah sebuah game Roguelike Hacking Simulator berbasis terminal (CLI) yang menggabungkan elemen eksplorasi taktis dengan edukasi pemrograman Python dan konsep Cybersecurity. Dibangun menggunakan pustaka tcod (Python), game ini menghadirkan sensasi visual retro berkat efek CRT/Scanline ASCII yang khas.
 
-NULL_TRACE is a terminal-based, retro-styled hacking and digital forensics simulation game. Built entirely with Python and the `tcod` library, it offers an immersive, full-screen cyberpunk experience reminiscent of classic DOS systems and early text-based RPGs.
+Fokus Permainan
+Game ini berfokus pada Edukasi Pemrograman dan Keamanan Siber (Cybersecurity) yang dibalut dalam pengalaman bermain (gameplay) RPG taktis. Alih-alih merapal mantra sihir atau menembakkan peluru, pemain menggunakan sintaks dan fungsi bahasa pemrograman Python murni untuk menyerang musuh, menambal kerentanan sistem, dan mengeksploitasi server musuh.
 
-## Overview
+Kurva belajarnya dirancang progresif: dimulai dari pengenalan struktur data/sintaks dasar Python, lalu berevolusi menjadi pemahaman tentang injeksi data, sanitasi input, dan investigasi forensik digital.
 
-In NULL_TRACE, you play as a newly activated digital forensics agent navigating through corrupted systems and encrypted network nodes. Your primary objective is to infiltrate the system, locate hidden data files, and eliminate anomalous entities (Glitches) and rogue security protocols (System Admins) that stand in your way.
+Ringkasan Cerita
+Tahun 2084. Sebagian besar infrastruktur digital global kini dikendalikan oleh superkomputer otoriter misterius bernama The Core.
 
-The game blends traditional roguelike exploration with typing-based combat and classic RPG mechanics, all presented through a highly stylized, retro-CRT visual interface.
+Anda bermain sebagai Tracer, seorang spesialis forensik siber yang baru saja diaktifkan di sebuah Unit Rahasia. Dipandu oleh Commander Integer dari markas pertahanan, misi utama Anda adalah menelusuri jejak mentor Anda, Elias Thorne, yang hilang secara misterius di dalam sistem The Core. Namun, seiring berjalannya misi, Anda akan menemukan bahwa hilangnya Elias berkaitan erat dengan pencurian cetak biru senjata rahasia pemerintah dan konspirasi kebocoran data (Data Breach) berskala global.
 
-## Key Features
+Apakah Elias adalah pahlawan yang mengorbankan dirinya, atau seorang pengkhianat?
 
-* **True Terminal Aesthetics:** Experience a fully realized retro environment complete with dynamic Matrix rain, CRT scanline effects, and authentic phosphor-glow visual filtering.
-* **Immersive Boot Sequence:** Every session begins with a simulated DOS-era system boot sequence, setting the tone before you even access the main menu.
-* **Roguelike Exploration:** Navigate procedurally generated nodes (dungeons) with field-of-view (FOV) and exploration mechanics.
-* **Dual Combat Systems:**
-    * **Typing Puzzles:** Defeat standard 'Glitch' enemies by quickly and accurately typing the correct code patches to fix syntax errors or memory leaks.
-    * **POV RPG Boss Battles:** Confront 'System Admin' mini-bosses in a classic, turn-based RPG perspective (inspired by Final Fantasy). Choose tactical commands to override their defenses while managing your system integrity.
-* **Dynamic UI:** The interface shifts seamlessly between exploration mapping, real-time system logs, dialogue transmissions, and dedicated combat HUDs.
-* **Standalone Executable:** Designed to be built and distributed as a standalone desktop application, requiring no web browser or external dependencies for the end-user.
+Inti Objek (Tujuan Utama)
+Di setiap level (Node), pemain memiliki siklus misi (Gameplay Loop) yang harus diselesaikan:
 
-## Installation and Execution (From Source)
+Survive (Bertahan Hidup): Bergerak menembus Fog of War (kabut gelap) dan menjaga System Integrity (HP) agar tidak mencapai 0%.
 
-To run the game directly from the Python source code, you will need Python installed on your system along with the necessary libraries.
+Data Retrieval (Pencurian Data): Pemain wajib mengeksplorasi labirin untuk menemukan dan meretas target data yang ditandai dengan simbol f.
 
-### Prerequisites
+Cyber Combat (Basmi Anomali): Saat bertemu virus atau System Admin, pertarungan berlangsung secara real-time dan turn-based. Pemain harus "mengetik" sintaks Python dengan tepat untuk membasmi ancaman. (Contoh: Menulis strip() untuk menambal kerentanan injeksi spasi pada input).
 
-1.  Python 3.x
-2.  `tcod` library
-3.  `numpy` library
-
-### Setup
-
-1.  Clone this repository to your local machine.
-2.  Open your terminal or command prompt.
-3.  Navigate to the cloned directory.
-4.  Install the required dependencies using pip:
-    ```bash
-    pip install tcod numpy
-    ```
-5.  Ensure the font file `dejavu10x10_gs_tc.png` is located in the same directory as the main Python script.
-6.  Run the game:
-    ```bash
-    python null_trace.py
-    ```
-    *(Note: Replace `null_trace.py` with the actual name of the main script file if different).*
-
-## Controls
-
-* **W, A, S, D / Arrow Keys:** Move your agent (@) around the map. Also used to navigate menus.
-* **E:** Interact with objects (e.g., hack Data Files).
-* **Enter:** Confirm selection in menus, execute typed code in battles, or advance dialogue.
-* **Backspace:** Delete characters while typing during a puzzle battle.
-* **Escape (ESC):** Disconnect (return to the Main Menu or exit the game).
-* **Keyboard (A-Z, 0-9, Symbols):** Used for typing code solutions during puzzle battles.
-
-## Building the Executable
-
-You can compile the source code into a standalone executable using PyInstaller. This allows others to play the game without installing Python.
-
-1.  Install PyInstaller:
-    ```bash
-    pip install pyinstaller
-    ```
-2.  Build the executable (hiding the background console):
-    ```bash
-    pyinstaller --noconsole null_trace.py
-    ```
-3.  Once the build process is complete, navigate to the newly created `dist` directory, then into the `null_trace` folder.
-4.  **Crucial Step:** Copy the font file `dejavu10x10_gs_tc.png` from the root directory and paste it into this `dist/null_trace` folder, alongside the generated `.exe` file.
-
-The game is now ready to be distributed or played directly from the executable.
-
-## License
-
-This project is open-source. Feel free to modify, distribute, and learn from the code.
+Extraction (Pelarian): Setelah data diamankan, pemain harus mencapai terminal ekstraksi > untuk memutuskan koneksi dan melompat ke sektor selanjutnya.
