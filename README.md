@@ -1,7 +1,3 @@
-Berikut adalah draf deskripsi `README.md` yang sudah saya bersihkan dari seluruh ikon (emoji) sesuai permintaan Anda:
-
-***
-
 # NULL_TRACE
 
 **NULL_TRACE** adalah sebuah game *Roguelike Hacking Simulator* berbasis terminal (CLI) yang menggabungkan elemen eksplorasi taktis dengan edukasi pemrograman Python dan konsep *Cybersecurity*. Dibangun menggunakan pustaka `tcod` (Python), game ini menghadirkan sensasi visual retro berkat efek CRT/Scanline ASCII yang khas.
