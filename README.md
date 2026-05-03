@@ -1,9 +1,11 @@
+```text
              _ _    _                      _ 
  _ __  _   _| | |  | |_ _ __ __ _  ___ ___| |
 | '_ \| | | | | |  | __| '__/ _` |/ __/ _ \ |
 | | | | |_| | | |  | |_| | | (_| | (_|  __/_|
 |_| |_|\__,_|_|_|___\__|_|  \__,_|\___\___(_)
                |_____|                       
+```
 
 **NULL_TRACE** adalah sebuah game *Roguelike Hacking Simulator* berbasis terminal (CLI) yang menggabungkan elemen eksplorasi taktis dengan edukasi pemrograman Python dan konsep *Cybersecurity*. Dibangun menggunakan pustaka `tcod` (Python), game ini menghadirkan sensasi visual retro berkat efek CRT/Scanline ASCII yang khas.
 
@@ -26,4 +28,24 @@ Di setiap level (*Node*), pemain memiliki siklus misi (Gameplay Loop) yang harus
 3. **Cyber Combat (Basmi Anomali):** Saat bertemu virus atau *System Admin*, pertarungan berlangsung secara *real-time* dan *turn-based*. Pemain harus "mengetik" sintaks Python dengan tepat untuk membasmi ancaman. (Contoh: Menulis `strip()` untuk menambal kerentanan injeksi spasi pada input).
 4. **Extraction (Pelarian):** Setelah data diamankan, pemain harus mencapai terminal ekstraksi **`>`** untuk memutuskan koneksi dan melompat ke sektor selanjutnya.
 
+
+## Fitur Unggulan
+*   **Real-time Threat:** Musuh berpatroli secara independen dari gerakan pemain.
+*   **Dynamic ASCII UI:** Menampilkan UI peretasan khas *hacker* lengkap dengan matriks hujan digital (*Matrix Rain*) dan log sistem (*Sys_Logs*).
+*   **Dialog Sinematik:** Percakapan antar karakter menggunakan gaya transmisi terminal dengan Avatar ASCII.
+*   **Tingkat Kesulitan Dinamis:** Saat melawan musuh Boss, pemain bisa memilih serangan `Standard Override` (risiko rendah, mudah) atau `Sigma Protocol` (kerusakan tinggi, sintaks kompleks).
+*   **Aksesibilitas:** Dilengkapi pengaturan *Windowed/Fullscreen* untuk kenyamanan resolusi layar pemain.
+
+## Cara Bermain
+*   **W, A, S, D / Panah** - Navigasi *Tracer* (`@`).
+*   **E** - Interaksi / Mengunduh data.
+*   **Keyboard Input** - Mengetik sintaks saat masuk ke mode pertarungan (*Hacking*).
+*   **Enter** - Mengeksekusi kode / Melanjutkan dialog.
+*   **ESC** - Membuka Menu / Keluar.
+
 ***
+**Metode 2: Drag and Drop Langsung di GitHub**
+1. Buka halaman *repository* Anda di *browser* dan klik tombol bergambar pensil (Edit) pada file `README.md`.
+2. Tarik dan lepas (*drag and drop*) file gambar dari komputer Anda langsung ke dalam area teks editor di halaman web GitHub.
+3. GitHub akan secara otomatis menghasilkan kode *link* gambar. Biarkan kode tersebut apa adanya.
+```
