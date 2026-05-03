@@ -103,6 +103,20 @@ MISSION_DATA = {
             ("[ TRACER ]", "DATA ACQUIRED.\n\nMemecahkan enkripsi file... Tunggu, ada anomali lain yang mendekat!"),
             ("[ COMMANDER INTEGER ]", "[LOG_TXT]: 'Protokol Admin telah diaktifkan. Akses keluar dikunci.'\n\nWARNING: Tracer, kalahkan SYSTEM_ADMIN untuk membatalkan pemblokiran.")
         ],
+    },
+    2: {
+        "title": "EPISODE 2: EXPLOIT & INJECTION",
+        "loc_name": "SYS/DATA_VAULT",
+        "start_dialog": [
+            ("[ COMMANDER INTEGER ]", "Tracer, perhatikan! Setelah kamu menembus Gateway, sensor markas mendeteksi lalu lintas data yang sangat masif dari dalam server."),
+            ("[ TRACER ]", "Maksud Anda, ada pihak lain di dalam jaringan ini?"),
+            ("[ COMMANDER INTEGER ]", "Benar. Ada peretas yang sedang menyedot blueprint senjata rahasia pemerintah melalui 'Backdoor'. Ini adalah DATA BREACH (Kebocoran Data) tingkat tinggi."),
+            ("[ COMMANDER INTEGER ]", "Cari file blueprint ( f ) yang tersisa sebelum peretas menghapusnya, dan berhati-hatilah dengan 'Worm' yang mereka tanam untuk merusak log sistem kita.")
+        ],
+        "end_dialog": [
+            ("[ TRACER ]", "File Blueprint berhasil diamankan, Commander. Namun struktur kode di dalamnya memuat tanda tangan digital milik Elias..."),
+            ("[ COMMANDER INTEGER ]", "Apa?! Elias... mencuri senjata pemerintah? Tidak, kita tidak bisa langsung mengambil kesimpulan. Selesaikan pertarunganmu dan cepat menuju titik ekstraksi!")
+        ],
     }
 }
 
@@ -118,29 +132,68 @@ ENEMY_PUZZLES = {
         "puzzle_desc": "Hentikan eksekusi kode berulang.\nCODE: print('Error')\nTASK: Ketik keyword Python untuk melewati blok ini secara aman.",
         "puzzle_solution": "pass",
         "dmg": 10,
+    },
+    "SQL_WORM": {
+        "puzzle_title": "[ INJECTION VULNERABILITY ]",
+        "puzzle_desc": "Spasi berlebih pada input dapat dieksploitasi untuk membongkar database.\nCODE: user_input = '  admin  '\nTASK: Ketik nama fungsi bawaan Python (beserta kurungnya) untuk memotong spasi kosong di awal dan akhir input string.",
+        "puzzle_solution": "strip()",
+        "dmg": 15,
     }
 }
 
-BOSS_PUZZLES = [
+BOSS_PUZZLES_STANDARD = [
     {
-        "puzzle_title": "[ FIREWALL BREACH ]",
+        "puzzle_title": "[ FIREWALL BREACH: TYPE ERROR ]",
         "puzzle_desc": "Tipe data tidak valid terdeteksi.\nCODE: y = '5' + 5\nTASK: Tulis sintaks untuk konversi string '5' ke integer.",
         "puzzle_solution": "int('5')"
     },
     {
-        "puzzle_title": "[ LOGIC GATE ]",
+        "puzzle_title": "[ FIREWALL BREACH: LOGIC GATE ]",
         "puzzle_desc": "Selesaikan kondisi gerbang logika ini.\nCODE: True and False\nTASK: Ketik hasil boolean dari ekspresi di atas.",
         "puzzle_solution": "False"
     },
     {
-        "puzzle_title": "[ ENCRYPTION KEY ]",
+        "puzzle_title": "[ FIREWALL BREACH: ENCRYPTION KEY ]",
         "puzzle_desc": "Sistem meminta jumlah elemen dari array.\nCODE: arr = [1, 2, 3]\nTASK: Gunakan fungsi bawaan Python untuk mendapatkan panjang array.",
         "puzzle_solution": "len(arr)"
     },
     {
-        "puzzle_title": "[ OVERRIDE PROTOCOL ]",
+        "puzzle_title": "[ FIREWALL BREACH: OVERRIDE PROTOCOL ]",
         "puzzle_desc": "Perbaiki fungsi otorisasi agar berhasil.\nCODE: def cek_akses():\nTASK: Ketik sintaks untuk mengembalikan nilai kebenaran absolut (True).",
         "puzzle_solution": "return True"
+    },
+    {
+        "puzzle_title": "[ FIREWALL BREACH: VALUE FINDER ]",
+        "puzzle_desc": "Sistem meminta nilai puncak dalam sektor data.\nCODE: arr = [1, 5, 2]\nTASK: Gunakan fungsi bawaan Python untuk mencari angka tertinggi dari array arr.",
+        "puzzle_solution": "max(arr)"
+    }
+]
+
+BOSS_PUZZLES_SIGMA = [
+    {
+        "puzzle_title": "[ SIGMA PROTOCOL: STRING MUTATION ]",
+        "puzzle_desc": "Sistem mendeteksi format huruf yang mencurigakan.\nCODE: x = 'ADMIN'\nTASK: Tulis sintaks untuk mengubah semua karakter pada variabel x menjadi huruf kecil (lowercase).",
+        "puzzle_solution": "x.lower()"
+    },
+    {
+        "puzzle_title": "[ SIGMA PROTOCOL: ARRAY TRUNCATION ]",
+        "puzzle_desc": "Terdapat anomali di akhir antrean memori.\nCODE: arr = [1, 2, 'malware']\nTASK: Tulis fungsi bawaan array/list untuk menghapus elemen terakhir tanpa menyebutkan indeksnya.",
+        "puzzle_solution": "arr.pop()"
+    },
+    {
+        "puzzle_title": "[ SIGMA PROTOCOL: KERNEL PATCHING ]",
+        "puzzle_desc": "Sistem menemukan cacat program di dalam string.\nCODE: s = 'ada bug'\nTASK: Tulis sintaks (fungsi replace) untuk mengganti kata 'bug' menjadi 'fix' pada variabel s.",
+        "puzzle_solution": "s.replace('bug', 'fix')"
+    },
+    {
+        "puzzle_title": "[ SIGMA PROTOCOL: CONCATENATION ]",
+        "puzzle_desc": "Protokol keamanan terpecah menjadi beberapa bagian list.\nCODE: parts = ['A', 'B']\nTASK: Tulis sintaks untuk menggabungkan elemen list tersebut menjadi satu string utuh tanpa spasi pemisah.",
+        "puzzle_solution": "''.join(['A', 'B'])"
+    },
+    {
+        "puzzle_title": "[ SIGMA PROTOCOL: DATA INJECTION ]",
+        "puzzle_desc": "Sistem meminta penambahan node darurat di ujung array.\nCODE: arr = [1, 2]\nTASK: Tulis sintaks untuk menambahkan elemen string 'X' ke bagian paling akhir dari list arr.",
+        "puzzle_solution": "arr.append('X')"
     }
 ]
 
@@ -218,7 +271,7 @@ def generate_dungeon(ep_idx):
         carve(Rect(28, 9, 10, 7))
         enemies = [{"x": 20, "y": 12, "name": "TUTORIAL_BUG", "hp": 5}]
         return dungeon, 8, 12, 32, 12, 36, 12, enemies
-    else:
+    elif ep_idx == 1:
         carve(Rect(5, 10, 10, 8))
         carve(Rect(14, 13, 20, 2))
         carve(Rect(25, 5, 10, 9))
@@ -228,6 +281,44 @@ def generate_dungeon(ep_idx):
             {"x": 42, "y": 15, "name": "SYSTEM_ADMIN", "hp": 200},
         ]
         return dungeon, 8, 14, 29, 8, 47, 15, enemies
+    elif ep_idx == 2:
+        carve(Rect(5, 5, 12, 12))
+        carve(Rect(17, 9, 15, 3))
+        carve(Rect(32, 5, 15, 12))
+        carve(Rect(47, 9, 10, 3))
+        carve(Rect(57, 5, 10, 10))
+        enemies = [
+            {"x": 25, "y": 10, "name": "SQL_WORM", "hp": 15},
+            {"x": 40, "y": 8, "name": "GLITCH", "hp": 10},
+            {"x": 62, "y": 10, "name": "SYSTEM_ADMIN", "hp": 200},
+        ]
+        return dungeon, 10, 10, 38, 14, 63, 10, enemies
+
+def render_gameplay_map(console, game_map, fov, explored, px, py, file_x, file_y, exit_x, exit_y, enemies, solved):
+    for x in range(MAP_VIEW_W):
+        for y in range(MAP_VIEW_H):
+            if fov[x,y]:
+                char, col = (".", COLOR_FLOOR) if game_map[x][y] == 0 else ("#", COLOR_WALL)
+                console.print(x, y, char, fg=col)
+            elif explored[x,y]:
+                char, col = (".", COLOR_FLOOR_DARK) if game_map[x][y] == 0 else ("#", COLOR_WALL_DARK)
+                console.print(x, y, char, fg=col)
+
+    if explored[file_x, file_y] and not solved:
+        console.print(file_x, file_y, "f", fg=COLOR_WARNING)
+    
+    if explored[exit_x, exit_y]:
+        col = COLOR_ACCENT if solved else COLOR_ENEMY
+        char = ">" if solved else "X"
+        console.print(exit_x, exit_y, char, fg=col)
+
+    for e in enemies:
+        if fov[e['x'], e['y']]:
+            char = "M" if e['name'] == "SYSTEM_ADMIN" else "E"
+            col = COLOR_BOSS if e['name'] == "SYSTEM_ADMIN" else COLOR_ENEMY
+            console.print(e['x'], e['y'], char, fg=col)
+
+    console.print(px, py, "@", fg=COLOR_PLAYER)
 
 def render_game_ui(console, hp, max_hp, loc, log, solved):
     console.draw_rect(MAP_VIEW_W, 0, SIDEBAR_W, SCREEN_H, 0, bg=COLOR_UI_BG)
@@ -291,6 +382,30 @@ def render_dialog(console, text, title):
         
     console.print(x + w - 22, y + h - 3, "[ENTER] CONTINUE", fg=COLOR_TEXT_DIM, bg=(0, 40, 0))
 
+def render_popup(console, text, title, is_success=False):
+    w, h = 60, 14
+    x, y = (SCREEN_W - w)//2, (SCREEN_H - h)//2
+    
+    frame_color = COLOR_ACCENT if is_success else COLOR_ENEMY
+    bg_color = (5, 15, 5) if is_success else (20, 5, 5)
+    inner_bg = (0, 10, 0) if is_success else (10, 0, 0)
+    
+    console.draw_frame(x, y, w, h, title=title, fg=frame_color, bg=bg_color)
+    console.draw_rect(x+1, y+1, w-2, h-2, 0, bg=inner_bg)
+    
+    draw_y = y + 3
+    lines = text.split('\n')
+    for l in lines:
+        if l == "":
+            draw_y += 1
+            continue
+        wrapped = textwrap.wrap(l, w - 6)
+        for wl in wrapped:
+            console.print(x + 3, draw_y, wl, fg=COLOR_TEXT)
+            draw_y += 1
+        
+    console.print(x + w - 22, y + h - 2, "[ENTER] CONTINUE", fg=COLOR_TEXT_DIM)
+
 def render_battle_puzzle(console, enemy_name, puzzle, user_input, is_boss_attack=False):
     w, h = 84, 25
     x = (SCREEN_W - w)//2
@@ -327,6 +442,9 @@ def render_battle_puzzle(console, enemy_name, puzzle, user_input, is_boss_attack
     console.print(x + 3, draw_y + 2, f"INPUT > {user_input}_", fg=COLOR_PLAYER)
 
 def render_boss_rpg(console, boss_hp, max_boss_hp, player_hp, menu_idx):
+    boss_hp = max(0, boss_hp)
+    player_hp = max(0, player_hp)
+    
     console.draw_rect(0, 0, SCREEN_W, SCREEN_H, 0, bg=(20, 10, 10))
     
     for i, line in enumerate(SYSTEM_ADMIN_ASCII_BATTLE):
@@ -379,10 +497,13 @@ def main():
     
     pending_damage = 0
     current_boss_puzzle = None
+    popup_success = False
+    last_battle_type = "NORMAL"
 
     fov = None
     explored = None
     recompute = True
+    last_enemy_move = time.time()
     
     matrix_rain = MatrixRain(SCREEN_W, SCREEN_H)
     
@@ -468,43 +589,59 @@ def main():
                         console.print(SCREEN_W//2 - 20, SCREEN_H//2 - 5 + (i*2), f"{pref}{title} {status}", fg=col)
 
                 elif state == "DIALOG":
-                    render_game_ui(console, hp, max_hp, mission['loc_name'], log, solved)
+                    if fov is not None and explored is not None:
+                        render_gameplay_map(console, game_map, fov, explored, px, py, file_x, file_y, exit_x, exit_y, enemies, solved)
+                        render_game_ui(console, hp, max_hp, mission['loc_name'], log, solved)
                     render_dialog(console, dialog_text, dialog_title)
+                    
+                elif state == "POPUP":
+                    if last_battle_type == "BOSS":
+                        boss_hp = active_enemy['hp'] if active_enemy else 0
+                        render_boss_rpg(console, boss_hp, 200, hp, boss_menu_idx)
+                    else:
+                        if fov is not None and explored is not None:
+                            render_gameplay_map(console, game_map, fov, explored, px, py, file_x, file_y, exit_x, exit_y, enemies, solved)
+                            render_game_ui(console, hp, max_hp, mission['loc_name'], log, solved)
+                        
+                    render_popup(console, dialog_text, dialog_title, is_success=popup_success)
 
                 elif state == "GAMEPLAY":
+                    
+                    if current_time - last_enemy_move > 0.1:
+                        last_enemy_move = current_time
+                        enemy_moved = False
+                        for e in enemies:
+                            if e['name'] == "SYSTEM_ADMIN":
+                                continue
+                            edx, edy = random.choice([(0,1), (0,-1), (1,0), (-1,0), (0,0)])
+                            if edx != 0 or edy != 0:
+                                enx, eny = e['x'] + edx, e['y'] + edy
+                                if 0 <= enx < MAP_VIEW_W and 0 <= eny < MAP_VIEW_H and game_map[enx][eny] == 0:
+                                    if enx == px and eny == py:
+                                        active_enemy = e
+                                        battle_input = ""
+                                        boss_menu_idx = 0
+                                        log.add(f"THREAT DETECTED: {e['name']}", COLOR_WARNING)
+                                        state = "BATTLE"
+                                        encounter_flash_end = time.time() + 0.3
+                                        break
+                                    elif not any(o['x'] == enx and o['y'] == eny for o in enemies):
+                                        e['x'], e['y'] = enx, eny
+                                        enemy_moved = True
+                        if enemy_moved:
+                            recompute = True
+                    
                     if recompute:
                         trans = np.array(game_map) == 0
                         fov = tcod.map.compute_fov(trans, (px, py), radius=12, algorithm=tcod.FOV_BASIC)
                         explored |= fov
                         recompute = False
                     
-                    for x in range(MAP_VIEW_W):
-                        for y in range(MAP_VIEW_H):
-                            if fov[x,y]:
-                                char, col = (".", COLOR_FLOOR) if game_map[x][y] == 0 else ("#", COLOR_WALL)
-                                console.print(x, y, char, fg=col)
-                            elif explored[x,y]:
-                                char, col = (".", COLOR_FLOOR_DARK) if game_map[x][y] == 0 else ("#", COLOR_WALL_DARK)
-                                console.print(x, y, char, fg=col)
-
-                    if explored[file_x, file_y] and not solved:
-                        console.print(file_x, file_y, "f", fg=COLOR_WARNING)
-                    
-                    if explored[exit_x, exit_y]:
-                        col = COLOR_ACCENT if solved else COLOR_ENEMY
-                        char = ">" if solved else "X"
-                        console.print(exit_x, exit_y, char, fg=col)
-
-                    for e in enemies:
-                        if fov[e['x'], e['y']]:
-                            char = "M" if e['name'] == "SYSTEM_ADMIN" else "E"
-                            col = COLOR_BOSS if e['name'] == "SYSTEM_ADMIN" else COLOR_ENEMY
-                            console.print(e['x'], e['y'], char, fg=col)
-
-                    console.print(px, py, "@", fg=COLOR_PLAYER)
+                    render_gameplay_map(console, game_map, fov, explored, px, py, file_x, file_y, exit_x, exit_y, enemies, solved)
                     render_game_ui(console, hp, max_hp, mission['loc_name'], log, solved)
 
                 elif state == "BATTLE":
+                    render_gameplay_map(console, game_map, fov, explored, px, py, file_x, file_y, exit_x, exit_y, enemies, solved)
                     render_game_ui(console, hp, max_hp, mission['loc_name'], log, solved)
                     puz = ENEMY_PUZZLES.get(active_enemy['name'], ENEMY_PUZZLES['GLITCH'])
                     render_battle_puzzle(console, active_enemy['name'], puz, battle_input, is_boss_attack=False)
@@ -535,9 +672,10 @@ def main():
                         sym = event.sym
                         
                         if sym == tcod.event.K_ESCAPE:
-                            if state in ["GAMEPLAY", "BATTLE", "BATTLE_BOSS", "BATTLE_BOSS_PUZZLE", "EPISODE_SELECT", "DIALOG"]:
+                            if state in ["GAMEPLAY", "BATTLE", "BATTLE_BOSS", "BATTLE_BOSS_PUZZLE", "EPISODE_SELECT", "DIALOG", "POPUP"]:
                                 state = "MAIN_MENU"
                                 menu_idx = 0
+                                active_enemy = None
                             elif state == "SETTINGS":
                                 state = "MAIN_MENU"
                                 menu_idx = 2
@@ -580,9 +718,16 @@ def main():
                                     mission = MISSION_DATA[ep_idx]
                                     game_map, px, py, file_x, file_y, exit_x, exit_y, enemies = generate_dungeon(ep_idx)
                                     explored = np.zeros((MAP_VIEW_W, MAP_VIEW_H), dtype=bool, order="F")
+                                    
+                                    trans = np.array(game_map) == 0
+                                    fov = tcod.map.compute_fov(trans, (px, py), radius=12, algorithm=tcod.FOV_BASIC)
+                                    explored |= fov
+                                    recompute = False
+                                    
                                     hp = 100
                                     solved = False
                                     log.messages.clear()
+                                    last_enemy_move = time.time()
                                     
                                     if isinstance(mission['start_dialog'], list):
                                         dialog_queue = mission['start_dialog'].copy()
@@ -604,6 +749,16 @@ def main():
                                         log.add("SYSTEM READY.", COLOR_ACCENT)
                                     elif state == "MAIN_MENU":
                                         hp = max_hp
+
+                        elif state == "POPUP":
+                            if sym == tcod.event.K_RETURN:
+                                if next_state in ["GAMEPLAY", "MAIN_MENU"]:
+                                    active_enemy = None
+                                state = next_state
+                                if state == "GAMEPLAY" and len(log.messages) == 0:
+                                    log.add("SYSTEM READY.", COLOR_ACCENT)
+                                elif state == "MAIN_MENU":
+                                    hp = max_hp
 
                         elif state == "GAMEPLAY":
                             dx, dy = 0, 0
@@ -652,33 +807,22 @@ def main():
                                             if abs(px - file_x) <= 1 and abs(py - file_y) <= 1 and not solved:
                                                 log.add("Target File Found. Press 'E'.", COLOR_ACCENT)
 
-                                            for e in enemies:
-                                                if e['name'] == "SYSTEM_ADMIN":
-                                                    continue
-                                                edx, edy = random.choice([(0,1), (0,-1), (1,0), (-1,0), (0,0)])
-                                                if edx != 0 or edy != 0:
-                                                    enx, eny = e['x'] + edx, e['y'] + edy
-                                                    if 0 <= enx < MAP_VIEW_W and 0 <= eny < MAP_VIEW_H and game_map[enx][eny] == 0:
-                                                        if enx == px and eny == py:
-                                                            active_enemy = e
-                                                            battle_input = ""
-                                                            boss_menu_idx = 0
-                                                            log.add(f"THREAT DETECTED: {e['name']}", COLOR_WARNING)
-                                                            state = "BATTLE"
-                                                            encounter_flash_end = time.time() + 0.3
-                                                            break
-                                                        elif not any(o['x'] == enx and o['y'] == eny for o in enemies):
-                                                            e['x'], e['y'] = enx, eny
-
                         elif state in ["BATTLE", "BATTLE_BOSS_PUZZLE"]:
                             puz = ENEMY_PUZZLES.get(active_enemy['name'], ENEMY_PUZZLES['GLITCH']) if state == "BATTLE" else current_boss_puzzle
                             
                             if sym == tcod.event.K_RETURN:
                                 if battle_input == puz['puzzle_solution']:
+                                    popup_success = True
+                                    last_battle_type = "BOSS" if state == "BATTLE_BOSS_PUZZLE" else "NORMAL"
+                                    
                                     if state == "BATTLE":
                                         log.add(f"{active_enemy['name']} DEFEATED.", COLOR_ACCENT)
                                         enemies.remove(active_enemy)
-                                        state = "GAMEPLAY"
+                                        
+                                        dialog_title = "[ SYSTEM ]"
+                                        dialog_text = f"✅ JAWABAN BENAR!\n\nSintaks valid. Anomali {active_enemy['name']} berhasil dihapus dari sistem."
+                                        next_state = "GAMEPLAY"
+                                        state = "POPUP"
                                         recompute = True
                                     else:
                                         active_enemy['hp'] -= pending_damage
@@ -686,25 +830,40 @@ def main():
                                         if active_enemy['hp'] <= 0:
                                             log.add("SYSTEM_ADMIN DELETED.", COLOR_ACCENT)
                                             enemies.remove(active_enemy)
-                                            state = "GAMEPLAY"
+                                            
+                                            dialog_title = "[ TACTICAL OVERRIDE ]"
+                                            dialog_text = f"✅ JAWABAN BENAR!\n\nSerangan berhasil (-{pending_damage} HP).\n\nSYSTEM_ADMIN DELETED. Akses terbuka."
+                                            next_state = "GAMEPLAY"
+                                            state = "POPUP"
                                             recompute = True
                                         else:
-                                            state = "BATTLE_BOSS"
+                                            dialog_title = "[ TACTICAL OVERRIDE ]"
+                                            dialog_text = f"✅ JAWABAN BENAR!\n\nSerangan berhasil mengenai sistem musuh (-{pending_damage} HP).\nIntegritas HOST tersisa: {active_enemy['hp']} HP."
+                                            next_state = "BATTLE_BOSS"
+                                            state = "POPUP"
                                 else:
+                                    popup_success = False
+                                    last_battle_type = "BOSS" if state == "BATTLE_BOSS_PUZZLE" else "NORMAL"
                                     dmg = puz.get('dmg', 10) if state == "BATTLE" else 25
                                     hp -= dmg
+                                    encounter_flash_end = time.time() + 0.1
+                                    
                                     if state == "BATTLE":
                                         log.add(f"ERROR: INTEGRITY LOST (-{dmg})", COLOR_ENEMY)
                                     else:
                                         log.add(f"ATTACK FAILED: -{dmg} INTEGRITY", COLOR_ENEMY)
-                                        state = "BATTLE_BOSS"
-                                        encounter_flash_end = time.time() + 0.1
                                         
                                     if hp <= 0:
-                                        dialog_title = "[ SYSTEM ]"
-                                        dialog_text = "CRITICAL ERROR.\nSYSTEM INTEGRITY AT 0%.\n\n[ CONNECTION TERMINATED ]"
+                                        dialog_title = "[ FATAL ERROR ]"
+                                        dialog_text = f"❌ JAWABAN SALAH!\n\nSistem menerima serangan balik (-{dmg} HP).\n\nCRITICAL ERROR. SYSTEM INTEGRITY AT 0%.\n\n[ CONNECTION TERMINATED ]"
                                         next_state = "MAIN_MENU"
-                                        state = "DIALOG"
+                                        state = "POPUP"
+                                    else:
+                                        dialog_title = "[ SYSTEM WARNING ]"
+                                        dialog_text = f"❌ JAWABAN SALAH!\n\nSintaks tidak valid. Sistem menerima serangan balik sebesar -{dmg} HP."
+                                        next_state = "BATTLE" if state == "BATTLE" else "BATTLE_BOSS"
+                                        state = "POPUP"
+                                        
                                 battle_input = ""
                                 
                             elif sym == tcod.event.K_BACKSPACE:
@@ -727,18 +886,19 @@ def main():
                             elif sym == tcod.event.K_RETURN:
                                 if boss_menu_idx == 0:
                                     pending_damage = 15
-                                    current_boss_puzzle = random.choice(BOSS_PUZZLES)
+                                    current_boss_puzzle = random.choice(BOSS_PUZZLES_STANDARD)
                                     battle_input = ""
                                     state = "BATTLE_BOSS_PUZZLE"
                                 elif boss_menu_idx == 1:
                                     pending_damage = 40
-                                    current_boss_puzzle = random.choice(BOSS_PUZZLES)
+                                    current_boss_puzzle = random.choice(BOSS_PUZZLES_SIGMA)
                                     battle_input = ""
                                     state = "BATTLE_BOSS_PUZZLE"
                                 elif boss_menu_idx == 2:
                                     state = "GAMEPLAY"
                                     log.add("Retreating...", COLOR_TEXT_DIM)
                                     recompute = True
+                                    active_enemy = None
 
                 if recompute_context:
                     break
