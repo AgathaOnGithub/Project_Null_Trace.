@@ -32,6 +32,15 @@ BOTTOM_PANEL_H = 13
 MAP_VIEW_W = SCREEN_W - SIDEBAR_W
 MAP_VIEW_H = SCREEN_H - BOTTOM_PANEL_H
 
+TITLE_ART = [
+    r"             _ _    _                      _ ",
+    r" _ __  _   _| | |  | |_ _ __ __ _  ___ ___| |",
+    r"| '_ \| | | | | |  | __| '__/ _` |/ __/ _ \ |",
+    r"| | | | |_| | | |  | |_| | | (_| | (_|  __/_|",
+    r"|_| |_|\__,_|_|_|___\__|_|  \__,_|\___\___(_)",
+    r"               |_____|                       "
+]
+
 SYSTEM_ADMIN_ASCII_BATTLE = [
     r"        _,.-------.,_        ",
     r"     ,;~'             '~;,   ",
@@ -85,7 +94,7 @@ MISSION_DATA = {
             ("[ COMMANDER INTEGER ]", "Bagus. Anda berada di sektor perimeter luar. Dengarkan baik-baik, misi ini sangat krusial.\n\nTAHUN 2084. Beberapa infrastruktur dikendalikan oleh superkomputer bernama The Core."),
             ("[ COMMANDER INTEGER ]", "Cerita dimulai ketika mentor dari Unit Rahasia, Elias Thorne, menghilang misterius saat menyelidiki anomali di server pemerintah. Elias meninggalkan jejak digital yang terenkripsi dan rusak."),
             ("[ COMMANDER INTEGER ]", "Anda adalah Tracer, anggota baru unit tersebut. Tugas Anda menelusuri jejak tersebut, menembus lapisan keamanan bervirus, dan mengungkap konspirasi besar di balik hilangnya Elias."),
-            ("[ SYSTEM ]", "[ PROTOKOL DASAR ]\n> Navigasi : W, A, S, D atau Panah.\n> Interaksi: Tekan 'E' untuk meretas Data ( f ).\n> Objektif : Bersihkan area dan capai terminal keluar ( > ).\n\nSemoga berhasil, Tracer.")
+            ("[ SYSTEM ]", "[ PROTOKOL DASAR ]\n> Navigasi : Panah (Atas, Bawah, Kiri, Kanan)\n> Otomatis : Tekan 'Z'\n> Interaksi: Tekan 'E' untuk ekstrak Data ( f ).\n> Terminal : Tekan 'I' untuk meretas ancaman.\n> Objektif : Bersihkan area dan capai terminal ( > ).\n\nSemoga berhasil, Tracer.")
         ],
         "end_dialog": [
             ("[ TRACER ]", "Commander, saya telah menemukan fragmen datanya. Enkripsi berhasil ditembus."),
@@ -406,7 +415,7 @@ def render_popup(console, text, title, is_success=False):
         
     console.print(x + w - 22, y + h - 2, "[ENTER] CONTINUE", fg=COLOR_TEXT_DIM)
 
-def render_battle_puzzle(console, enemy_name, puzzle, user_input, is_boss_attack=False):
+def render_battle_puzzle(console, enemy_name, puzzle, user_input, is_boss_attack=False, is_typing=False):
     w, h = 84, 25
     x = (SCREEN_W - w)//2
     y = (SCREEN_H - h)//2
@@ -438,8 +447,11 @@ def render_battle_puzzle(console, enemy_name, puzzle, user_input, is_boss_attack
         for wl in wrapped:
             console.print(x + 3, draw_y, wl, fg=COLOR_TEXT)
             draw_y += 1
-        
-    console.print(x + 3, draw_y + 2, f"INPUT > {user_input}_", fg=COLOR_PLAYER)
+            
+    if is_typing:
+        console.print(x + 3, draw_y + 2, f"INPUT > {user_input}_", fg=COLOR_PLAYER)
+    else:
+        console.print(x + 3, draw_y + 2, ">> PRESS 'I' TO OPEN TERMINAL <<", fg=COLOR_ACCENT, bg=(0,40,0))
 
 def render_boss_rpg(console, boss_hp, max_boss_hp, player_hp, menu_idx):
     boss_hp = max(0, boss_hp)
@@ -503,6 +515,13 @@ def main():
     fov = None
     explored = None
     recompute = True
+    
+    auto_move = False
+    last_dx, last_dy = 1, 0
+    last_auto_move = time.time()
+    
+    is_typing = False
+    ignore_next_text_input = False
     last_enemy_move = time.time()
     
     matrix_rain = MatrixRain(SCREEN_W, SCREEN_H)
@@ -519,6 +538,21 @@ def main():
     encounter_flash_end = 0
     is_fullscreen = False
 
+    bg_map = [[1 for _ in range(SCREEN_H)] for _ in range(SCREEN_W)]
+    for _ in range(25):
+        w, h = random.randint(6, 18), random.randint(4, 12)
+        x, y = random.randint(1, SCREEN_W - w - 1), random.randint(1, SCREEN_H - h - 1)
+        for i in range(x, x+w):
+            for j in range(y, y+h):
+                bg_map[i][j] = 0
+    bg_px, bg_py = SCREEN_W//2, SCREEN_H//2
+    for x in range(SCREEN_W):
+        for y in range(SCREEN_H):
+            if bg_map[x][y] == 0:
+                bg_px, bg_py = x, y
+                break
+    last_bg_move = time.time()
+
     while True:
         flags = tcod.context.SDL_WINDOW_FULLSCREEN if is_fullscreen else tcod.context.SDL_WINDOW_RESIZABLE
         
@@ -529,10 +563,6 @@ def main():
             while True:
                 console.clear(bg=COLOR_BG)
                 current_time = time.time()
-                
-                if state in ["MAIN_MENU", "EPISODE_SELECT", "SETTINGS", "BOOT"]:
-                    matrix_rain.update()
-                    matrix_rain.render(console)
                 
                 if state == "POWER_ON":
                     if current_time < power_on_timer:
@@ -553,32 +583,60 @@ def main():
                     if boot_lines_shown >= len(boot_lines) and current_time - boot_timer > 1.0:
                         state = "MAIN_MENU"
 
-                elif state == "MAIN_MENU":
+                if state in ["MAIN_MENU", "EPISODE_SELECT", "SETTINGS"]:
+                    if current_time - last_bg_move > 0.4:
+                        last_bg_move = current_time
+                        dx, dy = random.choice([(0,1), (0,-1), (1,0), (-1,0)])
+                        nx, ny = bg_px + dx, bg_py + dy
+                        if 0 <= nx < SCREEN_W and 0 <= ny < SCREEN_H and bg_map[nx][ny] == 0:
+                            bg_px, bg_py = nx, ny
+                            
+                    for x in range(SCREEN_W):
+                        for y in range(SCREEN_H):
+                            if bg_map[x][y] == 0:
+                                console.print(x, y, ".", fg=(20, 35, 45))
+                            else:
+                                console.print(x, y, "#", fg=(15, 25, 35))
+                    console.print(bg_px, bg_py, "@", fg=(0, 120, 120))
+                
+                if state in ["MAIN_MENU", "EPISODE_SELECT", "SETTINGS", "BOOT"]:
+                    matrix_rain.update()
+                    matrix_rain.render(console)
+                
+                if state == "MAIN_MENU":
                     cx, cy = SCREEN_W // 2, SCREEN_H // 2
-                    console.draw_rect(0, 0, SCREEN_W, SCREEN_H, 0, bg=(0,0,0), fg=(0,0,0), bg_blend=tcod.BKGND_MULTIPLY)
-                    console.print(cx, cy - 8, "N U L L _ T R A C E", fg=COLOR_PLAYER, alignment=tcod.CENTER)
+                    
+                    for i, line in enumerate(TITLE_ART):
+                        console.print((SCREEN_W - len(line)) // 2, cy - 14 + i, line, fg=COLOR_PLAYER)
+                        
+                    menu_w, menu_h = 36, 13
+                    menu_x, menu_y = cx - menu_w // 2, cy - 3
+                    console.draw_frame(menu_x, menu_y, menu_w, menu_h, title="[ TERMINAL ACCESS ]", fg=COLOR_ACCENT, bg=(10, 20, 30))
+                    console.draw_rect(menu_x+1, menu_y+1, menu_w-2, menu_h-2, 0, bg=(10, 20, 30))
                     
                     opts = ["PLAY", "LOAD GAME", "SETTINGS"]
                     for i, opt in enumerate(opts):
-                        col = COLOR_PLAYER if i == menu_idx else COLOR_TEXT_DIM
-                        pref = "> " if i == menu_idx else "  "
-                        console.print(cx - 10, cy + (i*2), f"{pref}{opt}", fg=col)
+                        col = COLOR_ACCENT if i == menu_idx else COLOR_TEXT_DIM
+                        text = f">> [ {opt} ] <<" if i == menu_idx else f"     {opt}     "
+                        console.print(cx, menu_y + 4 + (i*3), text, fg=col, alignment=tcod.CENTER)
 
                 elif state == "SETTINGS":
                     cx, cy = SCREEN_W // 2, SCREEN_H // 2
-                    console.draw_rect(0, 0, SCREEN_W, SCREEN_H, 0, bg=(0,0,0), fg=(0,0,0), bg_blend=tcod.BKGND_MULTIPLY)
-                    console.print(cx, cy - 8, "[ SYSTEM SETTINGS ]", fg=COLOR_ACCENT, alignment=tcod.CENTER)
+                    menu_w, menu_h = 36, 11
+                    menu_x, menu_y = cx - menu_w // 2, cy - 5
+                    console.draw_frame(menu_x, menu_y, menu_w, menu_h, title="[ SYSTEM SETTINGS ]", fg=COLOR_ACCENT, bg=(10, 20, 30))
+                    console.draw_rect(menu_x+1, menu_y+1, menu_w-2, menu_h-2, 0, bg=(10, 20, 30))
                     
                     fs_text = "ON" if is_fullscreen else "OFF"
                     opts = [f"FULLSCREEN: {fs_text}", "BACK"]
                     for i, opt in enumerate(opts):
-                        col = COLOR_PLAYER if i == settings_menu_idx else COLOR_TEXT_DIM
-                        pref = "> " if i == settings_menu_idx else "  "
-                        console.print(cx - 12, cy + (i*2), f"{pref}{opt}", fg=col)
+                        col = COLOR_ACCENT if i == settings_menu_idx else COLOR_TEXT_DIM
+                        text = f">> [ {opt} ] <<" if i == settings_menu_idx else f"     {opt}     "
+                        console.print(cx, menu_y + 4 + (i*3), text, fg=col, alignment=tcod.CENTER)
 
                 elif state == "EPISODE_SELECT":
-                    console.draw_frame(SCREEN_W//2 - 25, SCREEN_H//2 - 10, 50, 20, title="[ SYSTEM SELECT ]", fg=COLOR_ACCENT, bg=(10, 20, 10))
-                    console.draw_rect(SCREEN_W//2 - 24, SCREEN_H//2 - 9, 48, 18, 0, bg=(10, 20, 10))
+                    console.draw_frame(SCREEN_W//2 - 25, SCREEN_H//2 - 10, 50, 20, title="[ SYSTEM SELECT ]", fg=COLOR_ACCENT, bg=(10, 20, 30))
+                    console.draw_rect(SCREEN_W//2 - 24, SCREEN_H//2 - 9, 48, 18, 0, bg=(10, 20, 30))
                     
                     for i, ep_id in enumerate(MISSION_DATA.keys()):
                         is_locked = ep_id not in unlocked
@@ -607,7 +665,52 @@ def main():
 
                 elif state == "GAMEPLAY":
                     
-                    if current_time - last_enemy_move > 0.1:
+                    if auto_move and current_time - last_auto_move > 0.1:
+                        last_auto_move = current_time
+                        adx, ady = last_dx, last_dy
+                        nx, ny = px + adx, py + ady
+                        
+                        if not (0 <= nx < MAP_VIEW_W and 0 <= ny < MAP_VIEW_H and game_map[nx][ny] == 0):
+                            dirs = [(0,1), (0,-1), (1,0), (-1,0)]
+                            back_dir = (-last_dx, -last_dy)
+                            if back_dir in dirs: dirs.remove(back_dir)
+                            random.shuffle(dirs)
+                            dirs.append(back_dir)
+                            
+                            found_path = False
+                            for ndx, ndy in dirs:
+                                nnx, nny = px + ndx, py + ndy
+                                if 0 <= nnx < MAP_VIEW_W and 0 <= nny < MAP_VIEW_H and game_map[nnx][nny] == 0:
+                                    last_dx, last_dy = ndx, ndy
+                                    adx, ady = ndx, ndy
+                                    nx, ny = nnx, nny
+                                    found_path = True
+                                    break
+                            if not found_path:
+                                auto_move = False
+                        
+                        if auto_move:
+                            hit = next((e for e in enemies if e['x'] == nx and e['y'] == ny), None)
+                            if hit:
+                                active_enemy = hit
+                                battle_input = ""
+                                boss_menu_idx = 0
+                                is_typing = False
+                                auto_move = False
+                                log.add(f"THREAT DETECTED: {hit['name']}", COLOR_WARNING)
+                                state = "BATTLE_BOSS" if hit['name'] == "SYSTEM_ADMIN" else "BATTLE"
+                                encounter_flash_end = time.time() + 0.3
+                            else:
+                                px, py = nx, ny
+                                recompute = True
+                                if abs(px - file_x) <= 1 and abs(py - file_y) <= 1 and not solved:
+                                    auto_move = False
+                                    log.add("Target File Found. Press 'E'.", COLOR_ACCENT)
+                                if abs(px - exit_x) <= 1 and abs(py - exit_y) <= 1 and solved:
+                                    auto_move = False
+                                    log.add("Exit Node Reached. Press 'E'.", COLOR_ACCENT)
+
+                    if current_time - last_enemy_move > 0.8:
                         last_enemy_move = current_time
                         enemy_moved = False
                         for e in enemies:
@@ -621,6 +724,8 @@ def main():
                                         active_enemy = e
                                         battle_input = ""
                                         boss_menu_idx = 0
+                                        is_typing = False
+                                        auto_move = False
                                         log.add(f"THREAT DETECTED: {e['name']}", COLOR_WARNING)
                                         state = "BATTLE"
                                         encounter_flash_end = time.time() + 0.3
@@ -644,14 +749,14 @@ def main():
                     render_gameplay_map(console, game_map, fov, explored, px, py, file_x, file_y, exit_x, exit_y, enemies, solved)
                     render_game_ui(console, hp, max_hp, mission['loc_name'], log, solved)
                     puz = ENEMY_PUZZLES.get(active_enemy['name'], ENEMY_PUZZLES['GLITCH'])
-                    render_battle_puzzle(console, active_enemy['name'], puz, battle_input, is_boss_attack=False)
+                    render_battle_puzzle(console, active_enemy['name'], puz, battle_input, is_boss_attack=False, is_typing=is_typing)
 
                 elif state == "BATTLE_BOSS":
                     render_boss_rpg(console, active_enemy['hp'], 200, hp, boss_menu_idx)
 
                 elif state == "BATTLE_BOSS_PUZZLE":
                     render_boss_rpg(console, active_enemy['hp'], 200, hp, boss_menu_idx)
-                    render_battle_puzzle(console, "SYSTEM_ADMIN", current_boss_puzzle, battle_input, is_boss_attack=True)
+                    render_battle_puzzle(console, "SYSTEM_ADMIN", current_boss_puzzle, battle_input, is_boss_attack=True, is_typing=is_typing)
 
                 if current_time < encounter_flash_end:
                     apply_encounter_flash(console)
@@ -666,7 +771,12 @@ def main():
                         sys.exit()
                     
                     elif event.type == "TEXTINPUT" and state in ["BATTLE", "BATTLE_BOSS_PUZZLE"]:
-                        battle_input += event.text
+                        if is_typing:
+                            if ignore_next_text_input:
+                                ignore_next_text_input = False
+                                if event.text.lower() == 'i':
+                                    continue
+                            battle_input += event.text
                     
                     elif event.type == "KEYDOWN":
                         sym = event.sym
@@ -676,6 +786,7 @@ def main():
                                 state = "MAIN_MENU"
                                 menu_idx = 0
                                 active_enemy = None
+                                auto_move = False
                             elif state == "SETTINGS":
                                 state = "MAIN_MENU"
                                 menu_idx = 2
@@ -728,6 +839,7 @@ def main():
                                     solved = False
                                     log.messages.clear()
                                     last_enemy_move = time.time()
+                                    auto_move = False
                                     
                                     if isinstance(mission['start_dialog'], list):
                                         dialog_queue = mission['start_dialog'].copy()
@@ -762,12 +874,19 @@ def main():
 
                         elif state == "GAMEPLAY":
                             dx, dy = 0, 0
-                            if sym in (tcod.event.K_UP, tcod.event.K_w): dy = -1
-                            elif sym in (tcod.event.K_DOWN, tcod.event.K_s): dy = 1
-                            elif sym in (tcod.event.K_LEFT, tcod.event.K_a): dx = -1
-                            elif sym in (tcod.event.K_RIGHT, tcod.event.K_d): dx = 1
                             
+                            if sym == tcod.event.K_UP: dy = -1
+                            elif sym == tcod.event.K_DOWN: dy = 1
+                            elif sym == tcod.event.K_LEFT: dx = -1
+                            elif sym == tcod.event.K_RIGHT: dx = 1
+                            elif sym == tcod.event.K_z:
+                                auto_move = not auto_move
+                                if auto_move:
+                                    log.add("AUTO-NAV: ON. Press ARROWS to stop.", COLOR_ACCENT)
+                                else:
+                                    log.add("AUTO-NAV: OFF.", COLOR_WARNING)
                             elif sym == tcod.event.K_e:
+                                auto_move = False
                                 if abs(px - file_x) <= 1 and abs(py - file_y) <= 1 and not solved:
                                     solved = True
                                     if isinstance(mission['end_dialog'], list):
@@ -790,6 +909,8 @@ def main():
                                         log.add("DENIED: Retas file data (f) dahulu.", COLOR_ENEMY)
 
                             if dx != 0 or dy != 0:
+                                auto_move = False 
+                                last_dx, last_dy = dx, dy
                                 nx, ny = px + dx, py + dy
                                 if 0 <= nx < MAP_VIEW_W and 0 <= ny < MAP_VIEW_H:
                                     if game_map[nx][ny] == 0:
@@ -798,6 +919,7 @@ def main():
                                             active_enemy = hit
                                             battle_input = ""
                                             boss_menu_idx = 0
+                                            is_typing = False
                                             log.add(f"THREAT DETECTED: {hit['name']}", COLOR_WARNING)
                                             state = "BATTLE_BOSS" if hit['name'] == "SYSTEM_ADMIN" else "BATTLE"
                                             encounter_flash_end = time.time() + 0.3 
@@ -810,75 +932,86 @@ def main():
                         elif state in ["BATTLE", "BATTLE_BOSS_PUZZLE"]:
                             puz = ENEMY_PUZZLES.get(active_enemy['name'], ENEMY_PUZZLES['GLITCH']) if state == "BATTLE" else current_boss_puzzle
                             
-                            if sym == tcod.event.K_RETURN:
-                                if battle_input == puz['puzzle_solution']:
-                                    popup_success = True
-                                    last_battle_type = "BOSS" if state == "BATTLE_BOSS_PUZZLE" else "NORMAL"
-                                    
-                                    if state == "BATTLE":
-                                        log.add(f"{active_enemy['name']} DEFEATED.", COLOR_ACCENT)
-                                        enemies.remove(active_enemy)
+                            if not is_typing:
+                                if sym == tcod.event.K_i:
+                                    is_typing = True
+                                    ignore_next_text_input = True
+                                    battle_input = ""
+                            else:
+                                if sym == tcod.event.K_RETURN:
+                                    is_typing = False
+                                    if battle_input == puz['puzzle_solution']:
+                                        popup_success = True
+                                        last_battle_type = "BOSS" if state == "BATTLE_BOSS_PUZZLE" else "NORMAL"
                                         
-                                        dialog_title = "[ SYSTEM ]"
-                                        dialog_text = f"✅ JAWABAN BENAR!\n\nSintaks valid. Anomali {active_enemy['name']} berhasil dihapus dari sistem."
-                                        next_state = "GAMEPLAY"
-                                        state = "POPUP"
-                                        recompute = True
-                                    else:
-                                        active_enemy['hp'] -= pending_damage
-                                        log.add(f"ATTACK SUCCESS: -{pending_damage} HOST", COLOR_PLAYER)
-                                        if active_enemy['hp'] <= 0:
-                                            log.add("SYSTEM_ADMIN DELETED.", COLOR_ACCENT)
+                                        if state == "BATTLE":
+                                            log.add(f"{active_enemy['name']} DEFEATED.", COLOR_ACCENT)
                                             enemies.remove(active_enemy)
                                             
-                                            dialog_title = "[ TACTICAL OVERRIDE ]"
-                                            dialog_text = f"✅ JAWABAN BENAR!\n\nSerangan berhasil (-{pending_damage} HP).\n\nSYSTEM_ADMIN DELETED. Akses terbuka."
+                                            dialog_title = "[ SYSTEM ]"
+                                            dialog_text = f"✅ JAWABAN BENAR!\n\nSintaks valid. Anomali {active_enemy['name']} berhasil dihapus dari sistem."
                                             next_state = "GAMEPLAY"
                                             state = "POPUP"
                                             recompute = True
                                         else:
-                                            dialog_title = "[ TACTICAL OVERRIDE ]"
-                                            dialog_text = f"✅ JAWABAN BENAR!\n\nSerangan berhasil mengenai sistem musuh (-{pending_damage} HP).\nIntegritas HOST tersisa: {active_enemy['hp']} HP."
-                                            next_state = "BATTLE_BOSS"
+                                            active_enemy['hp'] -= pending_damage
+                                            log.add(f"ATTACK SUCCESS: -{pending_damage} HOST", COLOR_PLAYER)
+                                            if active_enemy['hp'] <= 0:
+                                                log.add("SYSTEM_ADMIN DELETED.", COLOR_ACCENT)
+                                                enemies.remove(active_enemy)
+                                                
+                                                dialog_title = "[ TACTICAL OVERRIDE ]"
+                                                dialog_text = f"✅ JAWABAN BENAR!\n\nSerangan berhasil (-{pending_damage} HP).\n\nSYSTEM_ADMIN DELETED. Akses terbuka."
+                                                next_state = "GAMEPLAY"
+                                                state = "POPUP"
+                                                recompute = True
+                                            else:
+                                                dialog_title = "[ TACTICAL OVERRIDE ]"
+                                                dialog_text = f"✅ JAWABAN BENAR!\n\nSerangan berhasil mengenai sistem musuh (-{pending_damage} HP).\nIntegritas HOST tersisa: {active_enemy['hp']} HP."
+                                                next_state = "BATTLE_BOSS"
+                                                state = "POPUP"
+                                    else:
+                                        popup_success = False
+                                        last_battle_type = "BOSS" if state == "BATTLE_BOSS_PUZZLE" else "NORMAL"
+                                        dmg = puz.get('dmg', 10) if state == "BATTLE" else 25
+                                        hp -= dmg
+                                        encounter_flash_end = time.time() + 0.1
+                                        
+                                        if state == "BATTLE":
+                                            log.add(f"ERROR: INTEGRITY LOST (-{dmg})", COLOR_ENEMY)
+                                        else:
+                                            log.add(f"ATTACK FAILED: -{dmg} INTEGRITY", COLOR_ENEMY)
+                                            
+                                        if hp <= 0:
+                                            dialog_title = "[ FATAL ERROR ]"
+                                            dialog_text = f"❌ JAWABAN SALAH!\n\nSistem menerima serangan balik (-{dmg} HP).\n\nCRITICAL ERROR. SYSTEM INTEGRITY AT 0%.\n\n[ CONNECTION TERMINATED ]"
+                                            next_state = "MAIN_MENU"
                                             state = "POPUP"
-                                else:
-                                    popup_success = False
-                                    last_battle_type = "BOSS" if state == "BATTLE_BOSS_PUZZLE" else "NORMAL"
-                                    dmg = puz.get('dmg', 10) if state == "BATTLE" else 25
-                                    hp -= dmg
-                                    encounter_flash_end = time.time() + 0.1
+                                        else:
+                                            dialog_title = "[ SYSTEM WARNING ]"
+                                            dialog_text = f"❌ JAWABAN SALAH!\n\nSintaks tidak valid. Sistem menerima serangan balik sebesar -{dmg} HP."
+                                            next_state = "BATTLE" if state == "BATTLE" else "BATTLE_BOSS"
+                                            state = "POPUP"
+                                            
+                                    battle_input = ""
                                     
-                                    if state == "BATTLE":
-                                        log.add(f"ERROR: INTEGRITY LOST (-{dmg})", COLOR_ENEMY)
+                                elif sym == tcod.event.K_BACKSPACE:
+                                    battle_input = battle_input[:-1]
+                                elif 32 <= sym <= 126:
+                                    char = chr(sym)
+                                    shift = event.mod & (tcod.event.KMOD_LSHIFT | tcod.event.KMOD_RSHIFT)
+                                    shift_map = {'9':'(', '0':')', '[':'{', ']':'}', ';':':', ',':'<', '.':'>', '/':'?', '1':'!', '2':'@', '3':'#', '4':'$', '5':'%', '6':'^', '7':'&', '8':'*'}
+                                    
+                                    if ignore_next_text_input and char.lower() == 'i':
+                                        ignore_next_text_input = False
                                     else:
-                                        log.add(f"ATTACK FAILED: -{dmg} INTEGRITY", COLOR_ENEMY)
-                                        
-                                    if hp <= 0:
-                                        dialog_title = "[ FATAL ERROR ]"
-                                        dialog_text = f"❌ JAWABAN SALAH!\n\nSistem menerima serangan balik (-{dmg} HP).\n\nCRITICAL ERROR. SYSTEM INTEGRITY AT 0%.\n\n[ CONNECTION TERMINATED ]"
-                                        next_state = "MAIN_MENU"
-                                        state = "POPUP"
-                                    else:
-                                        dialog_title = "[ SYSTEM WARNING ]"
-                                        dialog_text = f"❌ JAWABAN SALAH!\n\nSintaks tidak valid. Sistem menerima serangan balik sebesar -{dmg} HP."
-                                        next_state = "BATTLE" if state == "BATTLE" else "BATTLE_BOSS"
-                                        state = "POPUP"
-                                        
-                                battle_input = ""
-                                
-                            elif sym == tcod.event.K_BACKSPACE:
-                                battle_input = battle_input[:-1]
-                            elif 32 <= sym <= 126:
-                                char = chr(sym)
-                                shift = event.mod & (tcod.event.KMOD_LSHIFT | tcod.event.KMOD_RSHIFT)
-                                shift_map = {'9':'(', '0':')', '[':'{', ']':'}', ';':':', ',':'<', '.':'>', '/':'?', '1':'!', '2':'@', '3':'#', '4':'$', '5':'%', '6':'^', '7':'&', '8':'*'}
-                                if shift:
-                                    if 'a' <= char <= 'z': char = char.upper()
-                                    elif char in shift_map: char = shift_map[char]
-                                    elif char == '=': char = '+'
-                                    elif char == '-': char = '_'
-                                    elif char == "'": char = '"'
-                                battle_input += char
+                                        if shift:
+                                            if 'a' <= char <= 'z': char = char.upper()
+                                            elif char in shift_map: char = shift_map[char]
+                                            elif char == '=': char = '+'
+                                            elif char == '-': char = '_'
+                                            elif char == "'": char = '"'
+                                        battle_input += char
 
                         elif state == "BATTLE_BOSS":
                             if sym == tcod.event.K_UP: boss_menu_idx = (boss_menu_idx - 1) % 3
@@ -888,11 +1021,13 @@ def main():
                                     pending_damage = 15
                                     current_boss_puzzle = random.choice(BOSS_PUZZLES_STANDARD)
                                     battle_input = ""
+                                    is_typing = False
                                     state = "BATTLE_BOSS_PUZZLE"
                                 elif boss_menu_idx == 1:
                                     pending_damage = 40
                                     current_boss_puzzle = random.choice(BOSS_PUZZLES_SIGMA)
                                     battle_input = ""
+                                    is_typing = False
                                     state = "BATTLE_BOSS_PUZZLE"
                                 elif boss_menu_idx == 2:
                                     state = "GAMEPLAY"
